@@ -94,6 +94,16 @@ func getImageAlternatives(game *Game) (response *http.Response, fromSearch bool,
 		return
 	}
 
+	response, err = tryDownload(fmt.Sprintf(akamaiUrlFormat, game.Id2))
+	if err == nil && response != nil {
+		return
+	}
+
+	response, err = tryDownload(fmt.Sprintf(steamCdnUrlFormat, game.Id2))
+	if err == nil && response != nil {
+		return
+	}
+
 	fromSearch = true
 	url, err := getGoogleImage(game.Name)
 	if err != nil {

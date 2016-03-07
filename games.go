@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"bytes"
 	"hash/crc32"
 	"io/ioutil"
@@ -9,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"os/exec"
 )
 
 // A Steam game in a library. May or may not be installed.
@@ -25,6 +27,8 @@ type Game struct {
 	ImageBytes []byte
 	// Description of where the image was found (backup, official, search).
 	ImageSource string
+	// Real id for non-steam games
+	Id2 string
 }
 
 // Pattern of game declarations in the public profile. It's actually JSON
@@ -47,7 +51,7 @@ func addGamesFromProfile(user User, games map[string]*Game) (err error) {
 		gameName := groups[2]
 		tags := []string{""}
 		imagePath := ""
-		games[gameId] = &Game{gameId, gameName, tags, imagePath, nil, ""}
+		games[gameId] = &Game{gameId, gameName, tags, imagePath, nil, "", ""}
 	}
 
 	return
@@ -85,7 +89,7 @@ func addUnknownGames(user User, games map[string]*Game) {
 				// If for some reason it wasn't included in the profile, create a new
 				// entry for it now. Unfortunately we don't have a name.
 				gameName := ""
-				games[gameId] = &Game{gameId, gameName, []string{tag}, "", nil, ""}
+				games[gameId] = &Game{gameId, gameName, []string{tag}, "", nil, "", ""}
 			}
 		}
 	}
@@ -118,7 +122,17 @@ func addNonSteamGames(user User, games map[string]*Game) {
 		// to 64bit Steam ID. No idea why Steam chose this operation.
 		top := uint64(crc32.ChecksumIEEE(uniqueName)) | 0x80000000
 		gameId := strconv.FormatUint(top<<32|0x02000000, 10)
-		game := Game{gameId, string(gameName), []string{}, "", nil, ""}
+
+		out, err := exec.Command("sh", "findid.sh", string(gameName)).Output();
+		if err != nil {
+			fmt.Printf("Failed finding real ID: %s\n", err)
+		} else {
+			fmt.Printf("Found real ID '%s' for '%s'\n", out, gameName)
+		}
+
+		gameId2 := string(out)
+
+		game := Game{gameId, string(gameName), []string{}, "", nil, "", gameId2}
 		games[gameId] = &game
 
 		tagsText := gameGroups[3]
