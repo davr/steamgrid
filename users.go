@@ -147,5 +147,10 @@ func GetSteamInstallation() (path string, err error) {
 		return programFilesDir, nil
 	}
 
+	gamesDir := "C:/Games/Steam"
+	if _, err = os.Stat(gamesDir); err == nil {
+		return gamesDir, nil
+	}
+
 	return "", errors.New("Could not find Steam installation folder. You can drag and drop the Steam folder into `steamgrid.exe` or call `steamgrid STEAMPATH` for a manual override.")
 }
